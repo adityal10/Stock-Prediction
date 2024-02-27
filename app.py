@@ -25,15 +25,25 @@ def fetch_data():
     global my_dict
     my_dict = dict()
     present_date = datetime.datetime.now().strftime('%Y-%m-%d')
-    st.write(f'Fetching Stock data from the year 2014 January to present date.')
     for stock in stocks:
         data = pdr.get_data_yahoo(f"{stock}", start="2014-01-01", end=f"{present_date}")
         my_dict[stock] = data
     return my_dict
+
+data_load_state = st.text("Load Data...")
 stock_data = fetch_data()
+data_load_state.text("Load Data...Done!")
 
 
-def plot_opening_price(_df):
+st.subheader("Raw Data - NIFTY50")
+st.write(stock_data['^NSEI'].tail())
+# st.write(stock_data['^NSEI'][f'{selected_column}'])
+
+st.subheader("Time Series Plot")
+columns_list = list(pd.DataFrame(stock_data['ANGELONE.NS']).columns)
+selected_column = st.selectbox("Select column for plot", columns_list)
+
+def plot_opening_price(_df, col):
     fig = go.Figure()
 
     for stock_symbol, data in _df.items():
@@ -44,10 +54,10 @@ def plot_opening_price(_df):
         df['Date'] = pd.to_datetime(df.index)
 
         # Add trace for each stock
-        fig.add_trace(go.Scatter(x=df['Date'], y=df['Open'], name=f'{stock_symbol}_open'))
+        fig.add_trace(go.Scatter(x=df['Date'], y=df[f'{col}'], name=f'{stock_symbol}_{col}'))
 
     fig.update_layout(
-        title_text='Time Series Data - Opening Prices', 
+        title_text=f'Time Series Data - {col} Prices', 
         xaxis_rangeslider_visible=True,
         width=900,  # Set the width of the plot
         height=600,   # Set the height of the plot
@@ -56,11 +66,11 @@ def plot_opening_price(_df):
             font=dict(size=12)
         ),
             xaxis=dict(title='Date', tickfont=dict(size=14)),
-            yaxis=dict(title='Opening Price', tickfont=dict(size=14))
+            yaxis=dict(title=f'{col} Price', tickfont=dict(size=14))
         )
     st.plotly_chart(fig)
 
-plot_opening_price(stock_data)
+plot_opening_price(stock_data, selected_column)
 
 
 
