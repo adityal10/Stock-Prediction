@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from plotly import graph_objs as go
 
 import datetime
+from io import StringIO
 
 
 st.title("Stock Prediction")
@@ -33,10 +34,20 @@ def fetch_data():
 data_load_state = st.text("Load Data...")
 stock_data = fetch_data()
 data_load_state.text("Load Data...Done!")
+com_df = pd.concat({k: pd.DataFrame(v) for k, v in stock_data.items()}, axis=0, names=['Stock']).reset_index(level=1)
+# Convert the DataFrame to CSV string
+csv_string = com_df.to_csv(index=True)
+
+st.download_button(
+        label="Download Combined CSV",
+        data=csv_string,
+        file_name="combined_stock_data.csv",
+        key="download_combined_csv"
+    )
 
 
-st.subheader("Raw Data - NIFTY50")
-st.write(stock_data['^NSEI'].tail())
+st.text("Raw Data - NIFTY50")
+st.dataframe(stock_data['^NSEI'].tail(), use_container_width=True)
 # st.write(stock_data['^NSEI'][f'{selected_column}'])
 
 st.subheader("Time Series Plot")
@@ -49,7 +60,6 @@ def plot_opening_price(_df, col):
     for stock_symbol, data in _df.items():
         # Convert JSON to DataFrame
         df = pd.DataFrame(data)
-
         # Parse the 'Date' column as datetime
         df['Date'] = pd.to_datetime(df.index)
 
@@ -71,6 +81,4 @@ def plot_opening_price(_df, col):
     st.plotly_chart(fig)
 
 plot_opening_price(stock_data, selected_column)
-
-
 
