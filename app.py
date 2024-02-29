@@ -10,6 +10,7 @@ from keras.layers import Dense, LSTM
 import matplotlib.pyplot as plt
 # import plotly.figure_factory as ff
 from plotly import graph_objs as go
+from sklearn.metrics import r2_score
 
 import datetime
 from io import StringIO
@@ -84,14 +85,15 @@ def plot_opening_price(_df, col):
 plot_opening_price(stock_data, selected_column)
 
 
-def predict_model(df, num):
+def predict_model(df, num, stock_name):
     #loading the model
     model = pickle.load(open('models/linearregressionmodel.pkl', 'rb'))
 
     com_df = df
+    stock_name = stock_name
     #calling preprocessing function to get
     #processed data
-    df = preprocessing_data(com_df, num)
+    df = preprocessing_data(com_df, num, stock_name)
 
     #set x_forecast equal to the last 30 rows of the original dataset from adj close column
     x_forecast = np.array(df.drop(['Prediction'], axis=1))[-num:]
@@ -99,10 +101,13 @@ def predict_model(df, num):
 
     prediction_df = df.tail(num)
     prediction_df['Prediction'] = pred
-    
-    return prediction_df
 
-def preprocessing_data(df, num):
+    r_square = r2_score(x_forecast, pred)*100
+    st.write('R Square: ',r_square,"%")
+    
+    return prediction_df, r_square
+
+def preprocessing_data(df, num, stock_name):
     """
     preprocessing the data. For now we only took cipla stock value
     converts date object to datetime
@@ -113,20 +118,20 @@ def preprocessing_data(df, num):
     df['Date'] = pd.to_datetime(df['Date'])
     df = df.set_index('Date')
     # st.dataframe(df)
-    df = df[df['Stock']=='CIPLA.NS']
+    df = df[df['Stock']==f'{stock_name}']
     #get the adj. close price
     df = df[['Adj Close']]
     df['Prediction'] = df[['Adj Close']].shift(-num)
 
     return df
 
-def plotting_predictions(predict_df, df):
+def plotting_predictions(predict_df, df, stock_name):
     df = df.reset_index()
     # print(df.columns)
     df['Date'] = pd.to_datetime(df['Date'])
     df = df.set_index('Date')
     # st.dataframe(df)
-    df = df[df['Stock']=='CIPLA.NS']
+    df = df[df['Stock']==f'{stock_name}']
     #get the adj. close price
     df = df[['Adj Close']]
     # predict_df = predict_df.reset_index()
@@ -139,7 +144,7 @@ def plotting_predictions(predict_df, df):
     # plt.plot(predict_df[['Adj Close', 'Prediction']])
 
     fig.update_layout(
-        title_text=f'Predictions Time Series Data - Adj Close Prices', 
+        title_text=f'Predictions Time Series Data {stock_name}- Adj Close Prices', 
         xaxis_rangeslider_visible=True,
         width=900,  # Set the width of the plot
         height=600,   # Set the height of the plot
@@ -154,7 +159,13 @@ def plotting_predictions(predict_df, df):
     st.plotly_chart(fig)
 
 st.subheader("Predictions - Time Series Plot")
-num = st.number_input('Number of days: ', step=1)
-if num:
-    output= predict_model(com_df, num)
-    plotting_predictions(output, com_df)
+col1, col2 = st.columns(2)
+selected_column = col1.selectbox("Select stock for plot", stocks)
+num = col2.number_input('Number of days: ', step=1, min_value=25)
+if num and selected_column:
+    output, r_square = predict_model(com_df, num, selected_column)
+    plotting_predictions(output, com_df, selected_column)
+
+    #display dataframe
+    st.dataframe(output, use_container_width=True)
+    st.subheader(f'R Sqaure: {np.round(r_square, 2)}%')
