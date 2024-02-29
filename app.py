@@ -13,7 +13,7 @@ from plotly import graph_objs as go
 
 import datetime
 from io import StringIO
-
+import pickle
 
 st.title("Stock Prediction")
 
@@ -35,6 +35,7 @@ data_load_state = st.text("Load Data...")
 stock_data = fetch_data()
 data_load_state.text("Load Data...Done!")
 com_df = pd.concat({k: pd.DataFrame(v) for k, v in stock_data.items()}, axis=0, names=['Stock']).reset_index(level=1)
+
 # Convert the DataFrame to CSV string
 csv_string = com_df.to_csv(index=True)
 
@@ -82,3 +83,78 @@ def plot_opening_price(_df, col):
 
 plot_opening_price(stock_data, selected_column)
 
+
+def predict_model(df, num):
+    #loading the model
+    model = pickle.load(open('models/linearregressionmodel.pkl', 'rb'))
+
+    com_df = df
+    #calling preprocessing function to get
+    #processed data
+    df = preprocessing_data(com_df, num)
+
+    #set x_forecast equal to the last 30 rows of the original dataset from adj close column
+    x_forecast = np.array(df.drop(['Prediction'], axis=1))[-num:]
+    pred = model.predict(x_forecast)
+
+    prediction_df = df.tail(num)
+    prediction_df['Prediction'] = pred
+    
+    return prediction_df
+
+def preprocessing_data(df, num):
+    """
+    preprocessing the data. For now we only took cipla stock value
+    converts date object to datetime
+    a variable for predicting 'num' days out into the future
+    """
+    df = df.reset_index()
+    # print(df.columns)
+    df['Date'] = pd.to_datetime(df['Date'])
+    df = df.set_index('Date')
+    # st.dataframe(df)
+    df = df[df['Stock']=='CIPLA.NS']
+    #get the adj. close price
+    df = df[['Adj Close']]
+    df['Prediction'] = df[['Adj Close']].shift(-num)
+
+    return df
+
+def plotting_predictions(predict_df, df):
+    df = df.reset_index()
+    # print(df.columns)
+    df['Date'] = pd.to_datetime(df['Date'])
+    df = df.set_index('Date')
+    # st.dataframe(df)
+    df = df[df['Stock']=='CIPLA.NS']
+    #get the adj. close price
+    df = df[['Adj Close']]
+    # predict_df = predict_df.reset_index()
+
+    fig = go.Figure()
+    # Add trace for each stock
+    fig.add_trace(go.Scatter(x=df.index, y=df['Adj Close'], name='Train'))
+    fig.add_trace(go.Scatter(x=predict_df.index, y=predict_df['Adj Close'], name='Validation'))
+    fig.add_trace(go.Scatter(x=predict_df.index, y=predict_df['Prediction'], name='Predictions'))
+    # plt.plot(predict_df[['Adj Close', 'Prediction']])
+
+    fig.update_layout(
+        title_text=f'Predictions Time Series Data - Adj Close Prices', 
+        xaxis_rangeslider_visible=True,
+        width=900,  # Set the width of the plot
+        height=600,   # Set the height of the plot
+        legend=dict(
+            title=dict(text='Data', font=dict(size=15)),
+            font=dict(size=12)
+        ),
+            xaxis=dict(title='Date', tickfont=dict(size=14)),
+            yaxis=dict(title='Price', tickfont=dict(size=14))
+        )
+
+    st.plotly_chart(fig)
+
+st.subheader("Predictions - Time Series Plot")
+num = st.number_input('Number of days: ', step=1)
+if num:
+    output= predict_model(com_df, num)
+    plotting_predictions(output, com_df)
