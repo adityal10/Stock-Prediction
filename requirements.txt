@@ -9,3 +9,4 @@ scikit_learn==1.4.1.post1
 streamlit==1.31.1
 yfinance==0.2.37
 pickleshare==0.7.5
+tensorflow==2.15.0
