@@ -32,7 +32,8 @@ def fetch_data():
         my_dict[stock] = data
     return my_dict
 
-data_load_state = st.text("Load Data...")
+col1, col2 = st.columns(2)
+data_load_state = col1.text("Load Data...")
 stock_data = fetch_data()
 data_load_state.text("Load Data...Done!")
 com_df = pd.concat({k: pd.DataFrame(v) for k, v in stock_data.items()}, axis=0, names=['Stock']).reset_index(level=1)
@@ -40,7 +41,7 @@ com_df = pd.concat({k: pd.DataFrame(v) for k, v in stock_data.items()}, axis=0, 
 # Convert the DataFrame to CSV string
 csv_string = com_df.to_csv(index=True)
 
-st.download_button(
+col2.download_button(
         label="Download Combined CSV",
         data=csv_string,
         file_name="combined_stock_data.csv",
@@ -168,4 +169,3 @@ if num and selected_column:
 
     #display dataframe
     st.dataframe(output, use_container_width=True)
-    st.subheader(f'R Sqaure: {np.round(r_square, 2)}%')
