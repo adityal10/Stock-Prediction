@@ -104,7 +104,12 @@ def predict_model(df, num, stock_name):
     prediction_df['Prediction'] = pred
 
     r_square = r2_score(x_forecast, pred)*100
-    st.write('R Square: ',r_square,"%")
+    # st.write('R Square: ',r_square,"%")
+
+    col1, col2 = st.columns(2)
+    st.write(stock_name)
+    st.write("Actual Highest price:", prediction_df['Adj Close'].max())
+    st.write("Predicted Highest price:", prediction_df['Prediction'].max())
     
     return prediction_df, r_square
 
@@ -168,4 +173,5 @@ if num and selected_column:
     plotting_predictions(output, com_df, selected_column)
 
     #display dataframe
+    st.write("Dataset Overview")
     st.dataframe(output, use_container_width=True)
