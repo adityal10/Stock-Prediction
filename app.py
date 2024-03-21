@@ -50,7 +50,7 @@ col2.download_button(
 
 
 st.text("Raw Data - NIFTY50")
-# st.dataframe(stock_data['^NSEI'].tail(), use_container_width=True)
+st.dataframe(stock_data['^NSEI'].tail(), use_container_width=True)
 # st.write(stock_data['^NSEI'][f'{selected_column}'])
 
 st.subheader("Time Series Plot")
